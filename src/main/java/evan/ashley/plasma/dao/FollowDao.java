@@ -11,4 +11,6 @@ public interface FollowDao {
     void deleteFollow(DeleteFollowInput input) throws ResourceNotFoundException;
 
     GetFollowOutput getFollow(GetFollowInput input) throws ResourceNotFoundException;
+
+    ListFollowsOutput listFollows(ListFollowsInput input);
 }

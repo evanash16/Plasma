@@ -10,6 +10,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.function.Function;
 
@@ -40,10 +41,14 @@ public class JdbcUtilImpl implements JdbcUtil {
     private void addParameters(final PreparedStatement statement, final List<Object> parameters) throws SQLException {
         for (int i = 0; i < parameters.size(); i++) {
             final Object parameter = parameters.get(i);
+            // parameter indices start at 1
             final int parameterIndex = i + 1;
             if (parameter instanceof String) {
-                // parameter indices start at 1
                 statement.setString(parameterIndex, (String) parameter);
+            } else if (parameter instanceof Integer) {
+                statement.setInt(parameterIndex, (Integer) parameter);
+            } else if (parameter instanceof Timestamp) {
+                statement.setTimestamp(parameterIndex, (Timestamp) parameter);
             } else {
                 throw new UnsupportedOperationException(String.format("Cannot add parameter of type '%s'", parameter.getClass()));
             }
