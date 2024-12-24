@@ -11,7 +11,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
 
 @Log4j2
@@ -40,10 +42,21 @@ public class JdbcUtilImpl implements JdbcUtil {
 
     private void addParameters(final PreparedStatement statement, final List<Object> parameters) throws SQLException {
         for (int i = 0; i < parameters.size(); i++) {
-            final Object parameter = parameters.get(i);
+            final Object parameterOrOptional = parameters.get(i);
+
             // parameter indices start at 1
             final int parameterIndex = i + 1;
-            if (parameter instanceof String) {
+
+            final Object parameter;
+            if (parameterOrOptional instanceof Optional) {
+                parameter = ((Optional<?>) parameterOrOptional).orElse(null);
+            } else {
+                parameter = parameterOrOptional;
+            }
+
+            if (parameter == null) {
+                statement.setNull(parameterIndex, Types.NULL);
+            } else if (parameter instanceof String) {
                 statement.setString(parameterIndex, (String) parameter);
             } else if (parameter instanceof Integer) {
                 statement.setInt(parameterIndex, (Integer) parameter);

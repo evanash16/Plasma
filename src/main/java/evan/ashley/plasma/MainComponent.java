@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mchange.v2.c3p0.ComboPooledDataSource;
 import evan.ashley.plasma.dao.FollowDao;
 import evan.ashley.plasma.dao.FollowDaoImpl;
+import evan.ashley.plasma.dao.PostDao;
+import evan.ashley.plasma.dao.PostDaoImpl;
 import evan.ashley.plasma.dao.UserDao;
 import evan.ashley.plasma.dao.UserDaoImpl;
 import evan.ashley.plasma.model.dao.FollowsPaginationToken;
@@ -77,5 +79,12 @@ public class MainComponent {
             final JdbcUtil jdbcUtil,
             final TokenTranslator<FollowsPaginationToken> tokenTranslator) {
         return new FollowDaoImpl(dataSource, jdbcUtil, tokenTranslator);
+    }
+
+    @Bean
+    public PostDao getPostDao(
+            final DataSource dataSource,
+            final JdbcUtil jdbcUtil) {
+        return new PostDaoImpl(dataSource, jdbcUtil);
     }
 }
