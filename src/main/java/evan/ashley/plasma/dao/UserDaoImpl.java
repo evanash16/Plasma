@@ -123,7 +123,7 @@ public class UserDaoImpl implements UserDao {
                     .creationTime(user.getCreationTime())
                     .build();
         } catch (final SQLException e) {
-            throw new InternalErrorException("Failed to create new user", e);
+            throw new InternalErrorException(String.format("Failed to retrieve user with id '%s'", input.getId()), e);
         } catch (final NoSuchElementException e) {
             throw new ResourceNotFoundException(String.format("No user found with id '%s'", input.getId()));
         }

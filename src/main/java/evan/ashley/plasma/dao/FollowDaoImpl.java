@@ -1,13 +1,10 @@
 package evan.ashley.plasma.dao;
 
 import evan.ashley.plasma.constant.db.PostgreSQL;
-import evan.ashley.plasma.model.dao.DeleteFollowInput;
+import evan.ashley.plasma.model.dao.*;
 import evan.ashley.plasma.model.api.InternalErrorException;
 import evan.ashley.plasma.model.api.ResourceNotFoundException;
 import evan.ashley.plasma.model.api.ValidationException;
-import evan.ashley.plasma.model.dao.CreateFollowInput;
-import evan.ashley.plasma.model.dao.CreateFollowOutput;
-import evan.ashley.plasma.model.dao.ImmutableCreateFollowOutput;
 import evan.ashley.plasma.model.db.Follow;
 import evan.ashley.plasma.util.JdbcUtil;
 import evan.ashley.plasma.util.ParameterizedSqlStatementUtil;
@@ -76,6 +73,28 @@ public class FollowDaoImpl implements FollowDao {
             throw new InternalErrorException(String.format(
                     "Failed to delete follow '%s'",
                     input.getId()), e);
+        }
+    }
+
+    @Override
+    public GetFollowOutput getFollow(final GetFollowInput input) throws ResourceNotFoundException {
+        try (Connection connection = dataSource.getConnection()) {
+            final Follow follow = jdbcUtil.run(
+                    connection,
+                    ParameterizedSqlStatementUtil.build(
+                            "dao/follow/GetFollow.sql",
+                            input.getId()),
+                    Follow::fromResultSet).getFirst();
+            return ImmutableGetFollowOutput.builder()
+                    .id(follow.getId())
+                    .followerId(follow.getFollowerId())
+                    .followeeId(follow.getFolloweeId())
+                    .creationTime(follow.getCreationTime())
+                    .build();
+        } catch (final SQLException e) {
+            throw new InternalErrorException(String.format("Failed to retrieve follow with id '%s'", input.getId()), e);
+        } catch (final NoSuchElementException e) {
+            throw new ResourceNotFoundException(String.format("No follow found with id '%s'", input.getId()));
         }
     }
 }
