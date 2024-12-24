@@ -1,7 +1,9 @@
 package evan.ashley.plasma.dao;
 
 import evan.ashley.plasma.constant.db.PostgreSQL;
+import evan.ashley.plasma.model.dao.DeleteFollowInput;
 import evan.ashley.plasma.model.api.InternalErrorException;
+import evan.ashley.plasma.model.api.ResourceNotFoundException;
 import evan.ashley.plasma.model.api.ValidationException;
 import evan.ashley.plasma.model.dao.CreateFollowInput;
 import evan.ashley.plasma.model.dao.CreateFollowOutput;
@@ -15,6 +17,7 @@ import lombok.extern.log4j.Log4j2;
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.NoSuchElementException;
 
 @Log4j2
 @AllArgsConstructor
@@ -24,7 +27,7 @@ public class FollowDaoImpl implements FollowDao {
     private final JdbcUtil jdbcUtil;
 
     @Override
-    public CreateFollowOutput createFollow(final CreateFollowInput input) {
+    public CreateFollowOutput createFollow(final CreateFollowInput input) throws ValidationException {
         try (Connection connection = dataSource.getConnection()) {
             final Follow follow = jdbcUtil.run(connection, ParameterizedSqlStatementUtil.build(
                     "dao/follow/CreateFollow.sql",
@@ -54,6 +57,25 @@ public class FollowDaoImpl implements FollowDao {
                     "Failed to configure user '%s' to follow '%s'",
                     input.getFollowerId(),
                     input.getFolloweeId()), e);
+        }
+    }
+
+    @Override
+    public void deleteFollow(final DeleteFollowInput input) throws ResourceNotFoundException {
+        try (Connection connection = dataSource.getConnection()) {
+            final Follow ignored = jdbcUtil.run(connection, ParameterizedSqlStatementUtil.build(
+                            "dao/follow/DeleteFollow.sql",
+                            input.getId()),
+                    Follow::fromResultSet).getFirst();
+        } catch (final NoSuchElementException e) {
+            throw new ResourceNotFoundException(String.format("No follow found with id '%s'", input.getId()));
+        } catch (final SQLException e) {
+            log.error(
+                    "Something went wrong deleting follow '{}'",
+                    input.getId(), e);
+            throw new InternalErrorException(String.format(
+                    "Failed to delete follow '%s'",
+                    input.getId()), e);
         }
     }
 }

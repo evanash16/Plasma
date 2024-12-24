@@ -15,7 +15,7 @@ public class UserController {
     private UserDao userDao;
 
     @PostMapping("/user")
-    public CreateUserResponse createUser(@RequestBody final CreateUserRequest createUserRequest) {
+    public CreateUserResponse createUser(@RequestBody final CreateUserRequest createUserRequest) throws ValidationException {
         final CreateUserOutput output = userDao.createUser(ImmutableCreateUserInput.builder()
                 .username(createUserRequest.getUsername())
                 .password(createUserRequest.getPassword())
@@ -38,7 +38,7 @@ public class UserController {
     }
 
     @PatchMapping("/user/{id}")
-    public void updateUser(@PathVariable("id") final String id, @RequestBody final UpdateUserRequest request) throws ResourceNotFoundException {
+    public void updateUser(@PathVariable("id") final String id, @RequestBody final UpdateUserRequest request) throws ResourceNotFoundException, ValidationException {
         userDao.updateUser(ImmutableUpdateUserInput.builder()
                 .id(id)
                 .username(request.getUsername())

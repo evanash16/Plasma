@@ -33,7 +33,7 @@ public class UserDaoImpl implements UserDao {
     private final JdbcUtil jdbcUtil;
 
     @Override
-    public CreateUserOutput createUser(final CreateUserInput input) {
+    public CreateUserOutput createUser(final CreateUserInput input) throws ValidationException {
         try (Connection connection = dataSource.getConnection()) {
             final User user = jdbcUtil.run(
                     connection,
@@ -55,7 +55,7 @@ public class UserDaoImpl implements UserDao {
     }
 
     @Override
-    public void updateUser(final UpdateUserInput input) throws ResourceNotFoundException {
+    public void updateUser(final UpdateUserInput input) throws ResourceNotFoundException, ValidationException {
         try (Connection connection = dataSource.getConnection()) {
             final List<ParameterizedSqlStatement> updateExpressions = getUpdateExpressions(input);
             if (updateExpressions.isEmpty()) {
@@ -80,6 +80,8 @@ public class UserDaoImpl implements UserDao {
                             ImmutableMap.of("setExpressions", updateSql),
                             allParameters.toArray()),
                     User::fromResultSet).getFirst();
+        } catch (final NoSuchElementException e) {
+            throw new ResourceNotFoundException(String.format("No user found with id '%s'", input.getId()));
         } catch (final SQLException e) {
             if (PostgreSQL.SqlState.ConstraintViolation.UNIQUE.equals(e.getSQLState())) {
                 throw new ValidationException(String.format("A user already exists with username '%s'", input.getUsername()), e);
