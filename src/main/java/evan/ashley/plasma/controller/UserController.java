@@ -2,10 +2,7 @@ package evan.ashley.plasma.controller;
 
 import evan.ashley.plasma.dao.UserDao;
 import evan.ashley.plasma.model.api.*;
-import evan.ashley.plasma.model.dao.CreateUserOutput;
-import evan.ashley.plasma.model.dao.GetUserOutput;
-import evan.ashley.plasma.model.dao.ImmutableCreateUserInput;
-import evan.ashley.plasma.model.dao.ImmutableGetUserInput;
+import evan.ashley.plasma.model.dao.*;
 import jakarta.websocket.server.PathParam;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,5 +38,14 @@ public class UserController {
                 .username(output.getUsername())
                 .creationTime(output.getCreationTime())
                 .build();
+    }
+
+    @PatchMapping("/user/{id}")
+    public void updateUser(@PathVariable("id") final String id, @RequestBody final UpdateUserRequest request) throws ResourceNotFoundException {
+        userDao.updateUser(ImmutableUpdateUserInput.builder()
+                .id(id)
+                .username(request.getUsername())
+                .password(request.getPassword())
+                .build());
     }
 }

@@ -1,0 +1,17 @@
+package evan.ashley.plasma.model.api;
+
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import org.immutables.value.Value;
+
+import javax.annotation.Nullable;
+
+@Value.Immutable
+@JsonDeserialize(as = ImmutableUpdateUserRequest.class)
+public interface UpdateUserRequest {
+
+    @Nullable
+    String getUsername();
+
+    @Nullable
+    String getPassword();
+}
