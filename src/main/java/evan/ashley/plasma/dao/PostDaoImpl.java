@@ -3,6 +3,7 @@ package evan.ashley.plasma.dao;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import evan.ashley.plasma.constant.db.PostgreSQL;
+import evan.ashley.plasma.constant.db.Posts;
 import evan.ashley.plasma.model.api.InternalErrorException;
 import evan.ashley.plasma.model.api.ResourceNotFoundException;
 import evan.ashley.plasma.model.api.ValidationException;
@@ -14,9 +15,15 @@ import evan.ashley.plasma.model.dao.post.GetPostInput;
 import evan.ashley.plasma.model.dao.post.GetPostOutput;
 import evan.ashley.plasma.model.dao.post.ImmutableCreatePostOutput;
 import evan.ashley.plasma.model.dao.post.ImmutableGetPostOutput;
+import evan.ashley.plasma.model.dao.post.ImmutableListPostsOutput;
+import evan.ashley.plasma.model.dao.post.ImmutablePostsPaginationToken;
+import evan.ashley.plasma.model.dao.post.ListPostsInput;
+import evan.ashley.plasma.model.dao.post.ListPostsOutput;
+import evan.ashley.plasma.model.dao.post.Post;
+import evan.ashley.plasma.model.dao.post.PostsPaginationToken;
+import evan.ashley.plasma.model.dao.post.PostsSortOrder;
 import evan.ashley.plasma.model.dao.post.UpdatePostInput;
-import evan.ashley.plasma.model.db.Post;
-import evan.ashley.plasma.model.db.User;
+import evan.ashley.plasma.translator.TokenTranslator;
 import evan.ashley.plasma.util.ImmutableParameterizedSqlStatement;
 import evan.ashley.plasma.util.JdbcUtil;
 import evan.ashley.plasma.util.OptionalUtil;
@@ -28,6 +35,8 @@ import lombok.extern.log4j.Log4j2;
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -40,20 +49,23 @@ import static evan.ashley.plasma.constant.db.Posts.Column.TITLE;
 @AllArgsConstructor
 public class PostDaoImpl implements PostDao {
 
+    private static final int DEFAULT_POSTS_LIMIT = 100;
+
     private final DataSource dataSource;
     private final JdbcUtil jdbcUtil;
+    private final TokenTranslator<PostsPaginationToken> tokenTranslator;
 
     @Override
     public CreatePostOutput createPost(CreatePostInput input) throws ValidationException {
         try (Connection connection = dataSource.getConnection()) {
-            final Post post = jdbcUtil.run(
+            final evan.ashley.plasma.model.db.Post post = jdbcUtil.run(
                     connection,
                     ParameterizedSqlStatementUtil.build(
                             "dao/post/CreatePost.sql",
                             input.getPostedById(),
                             input.getTitle(),
                             Optional.ofNullable(input.getBody())),
-                    Post::fromResultSet).getFirst();
+                    evan.ashley.plasma.model.db.Post::fromResultSet).getFirst();
             return ImmutableCreatePostOutput.builder()
                     .id(post.getId())
                     .build();
@@ -93,7 +105,7 @@ public class PostDaoImpl implements PostDao {
                             "dao/post/UpdatePost.sql",
                             ImmutableMap.of("setExpressions", updateSql),
                             allParameters.toArray()),
-                    Post::fromResultSet).getFirst();
+                    evan.ashley.plasma.model.db.Post::fromResultSet).getFirst();
         } catch (final NoSuchElementException e) {
             throw new ResourceNotFoundException(String.format("No post found with id '%s'", input.getId()));
         } catch (final SQLException e) {
@@ -125,10 +137,10 @@ public class PostDaoImpl implements PostDao {
     @Override
     public void deletePost(final DeletePostInput input) throws ResourceNotFoundException {
         try (Connection connection = dataSource.getConnection()) {
-            final Post ignored = jdbcUtil.run(connection, ParameterizedSqlStatementUtil.build(
+            final evan.ashley.plasma.model.db.Post ignored = jdbcUtil.run(connection, ParameterizedSqlStatementUtil.build(
                             "dao/post/DeletePost.sql",
                             input.getId()),
-                    Post::fromResultSet).getFirst();
+                    evan.ashley.plasma.model.db.Post::fromResultSet).getFirst();
         } catch (final NoSuchElementException e) {
             throw new ResourceNotFoundException(String.format("No post found with id '%s'", input.getId()));
         } catch (final SQLException e) {
@@ -144,12 +156,12 @@ public class PostDaoImpl implements PostDao {
     @Override
     public GetPostOutput getPost(final GetPostInput input) throws ResourceNotFoundException {
         try (Connection connection = dataSource.getConnection()) {
-            final Post post = jdbcUtil.run(
+            final evan.ashley.plasma.model.db.Post post = jdbcUtil.run(
                     connection,
                     ParameterizedSqlStatementUtil.build(
                             "dao/post/GetPost.sql",
                             input.getId()),
-                    Post::fromResultSet).getFirst();
+                    evan.ashley.plasma.model.db.Post::fromResultSet).getFirst();
             return ImmutableGetPostOutput.builder()
                     .id(post.getId())
                     .postedById(post.getPostedById())
@@ -162,6 +174,70 @@ public class PostDaoImpl implements PostDao {
             throw new InternalErrorException(String.format("Failed to retrieve post with id '%s'", input.getId()), e);
         } catch (final NoSuchElementException e) {
             throw new ResourceNotFoundException(String.format("No post found with id '%s'", input.getId()));
+        }
+    }
+
+    @Override
+    public ListPostsOutput listPosts(final ListPostsInput input) {
+        try (Connection connection = dataSource.getConnection()) {
+            final PostsPaginationToken paginationToken = tokenTranslator.decode(input.getPaginationToken());
+            final Instant pointInTime = Optional.ofNullable(paginationToken)
+                    .map(PostsPaginationToken::getPointInTime)
+                    .orElseGet(Instant::now);
+            final PostsSortOrder sortOrder = Optional.ofNullable(input.getSortOrder())
+                    .orElse(PostsSortOrder.CREATION_TIME_DESCENDING);
+            final String sortOrderExpression = switch (sortOrder) {
+                case PostsSortOrder.CREATION_TIME_ASCENDING -> String.format("%s ASC", Posts.Column.CREATION_TIME);
+                case PostsSortOrder.CREATION_TIME_DESCENDING -> String.format("%s DESC", Posts.Column.CREATION_TIME);
+            };
+
+            final Instant previousCreationTime = Optional.ofNullable(paginationToken)
+                    .map(PostsPaginationToken::getLastCreationTime)
+                    .orElse(switch (sortOrder) {
+                        case PostsSortOrder.CREATION_TIME_ASCENDING -> Instant.EPOCH;
+                        case PostsSortOrder.CREATION_TIME_DESCENDING -> Instant.now();
+                    });
+            final String paginationExpression = switch (sortOrder) {
+                case PostsSortOrder.CREATION_TIME_ASCENDING -> String.format("%s > ?", Posts.Column.CREATION_TIME);
+                case PostsSortOrder.CREATION_TIME_DESCENDING -> String.format("%s < ?", Posts.Column.CREATION_TIME);
+            };
+
+            final int maxPageSize = Optional.ofNullable(input.getMaxPageSize())
+                    .orElse(DEFAULT_POSTS_LIMIT);
+
+            final List<evan.ashley.plasma.model.db.Post> posts = jdbcUtil.run(
+                    connection,
+                    ParameterizedSqlStatementUtil.buildFromTemplate(
+                            "dao/post/ListPosts.sql",
+                            ImmutableMap.of(
+                                    "paginationExpression", paginationExpression,
+                                    "sortOrder", sortOrderExpression),
+                            input.getPostedById(),
+                            Timestamp.from(pointInTime),
+                            Timestamp.from(previousCreationTime),
+                            maxPageSize),
+                    evan.ashley.plasma.model.db.Post::fromResultSet);
+            final List<Post> externalPosts = posts.stream()
+                    .map(Post::fromInternal)
+                    .collect(ImmutableList.toImmutableList());
+
+            final ImmutableListPostsOutput.Builder outputBuilder = ImmutableListPostsOutput.builder()
+                    .posts(externalPosts);
+            if (posts.isEmpty()) {
+                return outputBuilder.build();
+            }
+
+            final PostsPaginationToken newPaginationToken = ImmutablePostsPaginationToken.builder()
+                    .lastCreationTime(posts.getLast().getCreationTime())
+                    .pointInTime(pointInTime)
+                    .build();
+            return outputBuilder
+                    .paginationToken(tokenTranslator.encode(newPaginationToken))
+                    .build();
+        } catch (final SQLException e) {
+            throw new InternalErrorException(String.format(
+                    "Failed to retrieve posts for user with id '%s'",
+                    input.getPostedById()), e);
         }
     }
 }

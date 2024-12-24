@@ -10,6 +10,7 @@ import evan.ashley.plasma.dao.PostDaoImpl;
 import evan.ashley.plasma.dao.UserDao;
 import evan.ashley.plasma.dao.UserDaoImpl;
 import evan.ashley.plasma.model.dao.follow.FollowsPaginationToken;
+import evan.ashley.plasma.model.dao.post.PostsPaginationToken;
 import evan.ashley.plasma.model.dao.user.UsersPaginationToken;
 import evan.ashley.plasma.translator.TokenTranslator;
 import evan.ashley.plasma.translator.TokenTranslatorImpl;
@@ -82,9 +83,17 @@ public class MainComponent {
     }
 
     @Bean
+    public TokenTranslator<PostsPaginationToken> getPostsTokenTranslator(final ObjectMapper objectMapper) {
+        final TypeReference<PostsPaginationToken> typeReference = new TypeReference<PostsPaginationToken>() {
+        };
+        return new TokenTranslatorImpl<>(objectMapper, typeReference, Base64.getEncoder(), Base64.getDecoder());
+    }
+
+    @Bean
     public PostDao getPostDao(
             final DataSource dataSource,
-            final JdbcUtil jdbcUtil) {
-        return new PostDaoImpl(dataSource, jdbcUtil);
+            final JdbcUtil jdbcUtil,
+            final TokenTranslator<PostsPaginationToken> tokenTranslator) {
+        return new PostDaoImpl(dataSource, jdbcUtil, tokenTranslator);
     }
 }
