@@ -3,14 +3,26 @@ package evan.ashley.plasma.controller;
 import com.google.common.collect.ImmutableList;
 import evan.ashley.plasma.dao.UserDao;
 import evan.ashley.plasma.model.api.*;
-import evan.ashley.plasma.model.api.User;
-import evan.ashley.plasma.model.dao.*;
+import evan.ashley.plasma.model.api.user.CreateUserRequest;
+import evan.ashley.plasma.model.api.user.CreateUserResponse;
+import evan.ashley.plasma.model.api.user.GetUserResponse;
+import evan.ashley.plasma.model.api.user.ImmutableCreateUserResponse;
+import evan.ashley.plasma.model.api.user.ImmutableGetUserResponse;
+import evan.ashley.plasma.model.api.user.ImmutableSearchUsersResponse;
+import evan.ashley.plasma.model.api.user.SearchUsersResponse;
+import evan.ashley.plasma.model.api.user.UpdateUserRequest;
+import evan.ashley.plasma.model.api.user.User;
+import evan.ashley.plasma.model.dao.user.CreateUserOutput;
+import evan.ashley.plasma.model.dao.user.GetUserOutput;
+import evan.ashley.plasma.model.dao.user.ImmutableCreateUserInput;
+import evan.ashley.plasma.model.dao.user.ImmutableGetUserInput;
+import evan.ashley.plasma.model.dao.user.ImmutableSearchUsersInput;
+import evan.ashley.plasma.model.dao.user.ImmutableUpdateUserInput;
+import evan.ashley.plasma.model.dao.user.SearchUsersOutput;
 import io.micrometer.common.lang.Nullable;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @Log4j2
 @RestController

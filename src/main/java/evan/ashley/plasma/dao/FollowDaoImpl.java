@@ -4,10 +4,22 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import evan.ashley.plasma.constant.db.Follows;
 import evan.ashley.plasma.constant.db.PostgreSQL;
-import evan.ashley.plasma.model.dao.*;
 import evan.ashley.plasma.model.api.InternalErrorException;
 import evan.ashley.plasma.model.api.ResourceNotFoundException;
 import evan.ashley.plasma.model.api.ValidationException;
+import evan.ashley.plasma.model.dao.follow.CreateFollowInput;
+import evan.ashley.plasma.model.dao.follow.CreateFollowOutput;
+import evan.ashley.plasma.model.dao.follow.DeleteFollowInput;
+import evan.ashley.plasma.model.dao.follow.FollowsPaginationToken;
+import evan.ashley.plasma.model.dao.follow.FollowsSortOrder;
+import evan.ashley.plasma.model.dao.follow.GetFollowInput;
+import evan.ashley.plasma.model.dao.follow.GetFollowOutput;
+import evan.ashley.plasma.model.dao.follow.ImmutableCreateFollowOutput;
+import evan.ashley.plasma.model.dao.follow.ImmutableFollowsPaginationToken;
+import evan.ashley.plasma.model.dao.follow.ImmutableGetFollowOutput;
+import evan.ashley.plasma.model.dao.follow.ImmutableListFollowsOutput;
+import evan.ashley.plasma.model.dao.follow.ListFollowsInput;
+import evan.ashley.plasma.model.dao.follow.ListFollowsOutput;
 import evan.ashley.plasma.model.db.Follow;
 import evan.ashley.plasma.translator.TokenTranslator;
 import evan.ashley.plasma.util.JdbcUtil;
@@ -16,7 +28,6 @@ import lombok.AllArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 
 import javax.sql.DataSource;
-import javax.swing.*;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -150,8 +161,8 @@ public class FollowDaoImpl implements FollowDao {
                             Timestamp.from(previousCreationTime),
                             maxPageSize),
                     Follow::fromResultSet);
-            final List<evan.ashley.plasma.model.dao.Follow> externalFollows = follows.stream()
-                    .map(evan.ashley.plasma.model.dao.Follow::fromInternal)
+            final List<evan.ashley.plasma.model.dao.follow.Follow> externalFollows = follows.stream()
+                    .map(evan.ashley.plasma.model.dao.follow.Follow::fromInternal)
                     .collect(ImmutableList.toImmutableList());
 
             final ImmutableListFollowsOutput.Builder outputBuilder = ImmutableListFollowsOutput.builder()

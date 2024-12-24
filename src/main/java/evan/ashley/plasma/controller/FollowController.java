@@ -2,26 +2,24 @@ package evan.ashley.plasma.controller;
 
 import com.google.common.collect.ImmutableList;
 import evan.ashley.plasma.dao.FollowDao;
-import evan.ashley.plasma.model.api.CreateFollowRequest;
-import evan.ashley.plasma.model.api.CreateFollowResponse;
-import evan.ashley.plasma.model.api.Follow;
-import evan.ashley.plasma.model.api.FollowsSortOrder;
-import evan.ashley.plasma.model.api.GetFollowResponse;
-import evan.ashley.plasma.model.api.ImmutableCreateFollowResponse;
-import evan.ashley.plasma.model.api.ImmutableGetFollowResponse;
-import evan.ashley.plasma.model.api.ImmutableListFollowsResponse;
-import evan.ashley.plasma.model.api.ListFollowsResponse;
+import evan.ashley.plasma.model.api.follow.CreateFollowRequest;
+import evan.ashley.plasma.model.api.follow.CreateFollowResponse;
+import evan.ashley.plasma.model.api.follow.Follow;
+import evan.ashley.plasma.model.api.follow.FollowsSortOrder;
+import evan.ashley.plasma.model.api.follow.GetFollowResponse;
+import evan.ashley.plasma.model.api.follow.ImmutableCreateFollowResponse;
+import evan.ashley.plasma.model.api.follow.ImmutableGetFollowResponse;
+import evan.ashley.plasma.model.api.follow.ImmutableListFollowsResponse;
+import evan.ashley.plasma.model.api.follow.ListFollowsResponse;
 import evan.ashley.plasma.model.api.ResourceNotFoundException;
 import evan.ashley.plasma.model.api.ValidationException;
-import evan.ashley.plasma.model.dao.CreateFollowOutput;
-import evan.ashley.plasma.model.dao.GetFollowOutput;
-import evan.ashley.plasma.model.dao.ImmutableCreateFollowInput;
-import evan.ashley.plasma.model.dao.ImmutableDeleteFollowInput;
-import evan.ashley.plasma.model.dao.ImmutableGetFollowInput;
-import evan.ashley.plasma.model.dao.ImmutableListFollowsInput;
-import evan.ashley.plasma.model.dao.ImmutableListFollowsOutput;
-import evan.ashley.plasma.model.dao.ListFollowsOutput;
-import jakarta.websocket.server.PathParam;
+import evan.ashley.plasma.model.dao.follow.CreateFollowOutput;
+import evan.ashley.plasma.model.dao.follow.GetFollowOutput;
+import evan.ashley.plasma.model.dao.follow.ImmutableCreateFollowInput;
+import evan.ashley.plasma.model.dao.follow.ImmutableDeleteFollowInput;
+import evan.ashley.plasma.model.dao.follow.ImmutableGetFollowInput;
+import evan.ashley.plasma.model.dao.follow.ImmutableListFollowsInput;
+import evan.ashley.plasma.model.dao.follow.ListFollowsOutput;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -83,7 +81,7 @@ public class FollowController {
                 .followerId(followerId)
                 .sortOrder(Optional.ofNullable(sortOrder)
                         .map(FollowsSortOrder::toString)
-                        .map(evan.ashley.plasma.model.dao.FollowsSortOrder::valueOf)
+                        .map(evan.ashley.plasma.model.dao.follow.FollowsSortOrder::valueOf)
                         .orElse(null))
                 .maxPageSize(maxPageSize)
                 .paginationToken(paginationToken)

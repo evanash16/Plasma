@@ -3,22 +3,21 @@ package evan.ashley.plasma.dao;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import evan.ashley.plasma.constant.db.PostgreSQL;
-import evan.ashley.plasma.constant.db.Users;
 import evan.ashley.plasma.model.api.InternalErrorException;
 import evan.ashley.plasma.model.api.ResourceNotFoundException;
 import evan.ashley.plasma.model.api.ValidationException;
-import evan.ashley.plasma.model.dao.CreateUserInput;
-import evan.ashley.plasma.model.dao.CreateUserOutput;
-import evan.ashley.plasma.model.dao.GetUserInput;
-import evan.ashley.plasma.model.dao.GetUserOutput;
-import evan.ashley.plasma.model.dao.ImmutableCreateUserOutput;
-import evan.ashley.plasma.model.dao.ImmutableGetUserOutput;
-import evan.ashley.plasma.model.dao.ImmutableSearchUsersOutput;
-import evan.ashley.plasma.model.dao.ImmutableUsersPaginationToken;
-import evan.ashley.plasma.model.dao.SearchUsersInput;
-import evan.ashley.plasma.model.dao.SearchUsersOutput;
-import evan.ashley.plasma.model.dao.UpdateUserInput;
-import evan.ashley.plasma.model.dao.UsersPaginationToken;
+import evan.ashley.plasma.model.dao.user.CreateUserInput;
+import evan.ashley.plasma.model.dao.user.CreateUserOutput;
+import evan.ashley.plasma.model.dao.user.GetUserInput;
+import evan.ashley.plasma.model.dao.user.GetUserOutput;
+import evan.ashley.plasma.model.dao.user.ImmutableCreateUserOutput;
+import evan.ashley.plasma.model.dao.user.ImmutableGetUserOutput;
+import evan.ashley.plasma.model.dao.user.ImmutableSearchUsersOutput;
+import evan.ashley.plasma.model.dao.user.ImmutableUsersPaginationToken;
+import evan.ashley.plasma.model.dao.user.SearchUsersInput;
+import evan.ashley.plasma.model.dao.user.SearchUsersOutput;
+import evan.ashley.plasma.model.dao.user.UpdateUserInput;
+import evan.ashley.plasma.model.dao.user.UsersPaginationToken;
 import evan.ashley.plasma.model.db.User;
 import evan.ashley.plasma.translator.TokenTranslator;
 import evan.ashley.plasma.util.ImmutableParameterizedSqlStatement;
@@ -176,7 +175,7 @@ public class UserDaoImpl implements UserDao {
 
             final ImmutableSearchUsersOutput.Builder outputBuilder = ImmutableSearchUsersOutput.builder()
                     .users(users.stream()
-                            .map(evan.ashley.plasma.model.dao.User::fromInternal)
+                            .map(evan.ashley.plasma.model.dao.user.User::fromInternal)
                             .collect(ImmutableList.toImmutableList()));
 
             // Offset queries are expensive, and since the query space can be reduced with more precise query criteria,

@@ -2,10 +2,10 @@ package evan.ashley.plasma.dao;
 
 import evan.ashley.plasma.model.api.ResourceNotFoundException;
 import evan.ashley.plasma.model.api.ValidationException;
-import evan.ashley.plasma.model.dao.CreatePostInput;
-import evan.ashley.plasma.model.dao.CreatePostOutput;
-import evan.ashley.plasma.model.dao.GetPostInput;
-import evan.ashley.plasma.model.dao.GetPostOutput;
+import evan.ashley.plasma.model.dao.post.CreatePostInput;
+import evan.ashley.plasma.model.dao.post.CreatePostOutput;
+import evan.ashley.plasma.model.dao.post.GetPostInput;
+import evan.ashley.plasma.model.dao.post.GetPostOutput;
 
 public interface PostDao {
 
