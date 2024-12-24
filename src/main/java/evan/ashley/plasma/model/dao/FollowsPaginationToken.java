@@ -10,4 +10,6 @@ import java.time.Instant;
 public interface FollowsPaginationToken {
 
     Instant getLastCreationTime();
+
+    Instant getPointInTime();
 }

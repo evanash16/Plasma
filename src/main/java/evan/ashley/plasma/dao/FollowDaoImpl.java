@@ -114,25 +114,25 @@ public class FollowDaoImpl implements FollowDao {
     public ListFollowsOutput listFollows(final ListFollowsInput input) {
         try (Connection connection = dataSource.getConnection()) {
             final FollowsPaginationToken paginationToken = tokenTranslator.decode(input.getPaginationToken());
+            final Instant pointInTime = Optional.ofNullable(paginationToken)
+                    .map(FollowsPaginationToken::getPointInTime)
+                    .orElseGet(Instant::now);
             final FollowsSortOrder sortOrder = Optional.ofNullable(input.getSortOrder())
                     .orElse(FollowsSortOrder.CREATION_TIME_DESCENDING);
-
-            final Instant defaultPaginationConstraint = switch (sortOrder) {
-                case FollowsSortOrder.CREATION_TIME_ASCENDING -> Instant.EPOCH;
-                case FollowsSortOrder.CREATION_TIME_DESCENDING -> Instant.now();
-            };
-            final Instant paginationConstraint = Optional.ofNullable(paginationToken)
-                    .map(FollowsPaginationToken::getLastCreationTime)
-                    .orElse(defaultPaginationConstraint);
-
-            final String paginationExpression = switch (sortOrder) {
-                case FollowsSortOrder.CREATION_TIME_ASCENDING -> String.format("%s > ?", Follows.Column.CREATION_TIME);
-                case FollowsSortOrder.CREATION_TIME_DESCENDING -> String.format("%s < ?", Follows.Column.CREATION_TIME);
-            };
-
             final String sortOrderExpression = switch (sortOrder) {
                 case FollowsSortOrder.CREATION_TIME_ASCENDING -> String.format("%s ASC", Follows.Column.CREATION_TIME);
                 case FollowsSortOrder.CREATION_TIME_DESCENDING -> String.format("%s DESC", Follows.Column.CREATION_TIME);
+            };
+
+            final Instant previousCreationTime = Optional.ofNullable(paginationToken)
+                    .map(FollowsPaginationToken::getLastCreationTime)
+                    .orElse(switch (sortOrder) {
+                        case FollowsSortOrder.CREATION_TIME_ASCENDING -> Instant.EPOCH;
+                        case FollowsSortOrder.CREATION_TIME_DESCENDING -> Instant.now();
+                    });
+            final String paginationExpression = switch (sortOrder) {
+                case FollowsSortOrder.CREATION_TIME_ASCENDING -> String.format("%s > ?", Follows.Column.CREATION_TIME);
+                case FollowsSortOrder.CREATION_TIME_DESCENDING -> String.format("%s < ?", Follows.Column.CREATION_TIME);
             };
 
             final int maxPageSize = Optional.ofNullable(input.getMaxPageSize())
@@ -146,7 +146,8 @@ public class FollowDaoImpl implements FollowDao {
                                     "paginationExpression", paginationExpression,
                                     "sortOrder", sortOrderExpression),
                             input.getFollowerId(),
-                            Timestamp.from(paginationConstraint),
+                            Timestamp.from(pointInTime),
+                            Timestamp.from(previousCreationTime),
                             maxPageSize),
                     Follow::fromResultSet);
             final List<evan.ashley.plasma.model.dao.Follow> externalFollows = follows.stream()
@@ -161,6 +162,7 @@ public class FollowDaoImpl implements FollowDao {
 
             final FollowsPaginationToken newPaginationToken = ImmutableFollowsPaginationToken.builder()
                     .lastCreationTime(follows.getLast().getCreationTime())
+                    .pointInTime(pointInTime)
                     .build();
             return outputBuilder
                     .paginationToken(tokenTranslator.encode(newPaginationToken))
