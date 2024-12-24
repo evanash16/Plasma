@@ -6,6 +6,7 @@ public class PostgreSQL {
 
         public static class ConstraintViolation {
 
+            public static final String FOREIGN_KEY = "23503";
             public static final String UNIQUE = "23505";
         }
     }

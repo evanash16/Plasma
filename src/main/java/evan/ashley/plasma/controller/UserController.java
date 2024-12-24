@@ -3,12 +3,9 @@ package evan.ashley.plasma.controller;
 import evan.ashley.plasma.dao.UserDao;
 import evan.ashley.plasma.model.api.*;
 import evan.ashley.plasma.model.dao.*;
-import jakarta.websocket.server.PathParam;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-
-import javax.sql.DataSource;
 
 @Log4j2
 @RestController

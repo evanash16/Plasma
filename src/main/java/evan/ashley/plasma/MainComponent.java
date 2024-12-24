@@ -1,6 +1,8 @@
 package evan.ashley.plasma;
 
 import com.mchange.v2.c3p0.ComboPooledDataSource;
+import evan.ashley.plasma.dao.FollowDao;
+import evan.ashley.plasma.dao.FollowDaoImpl;
 import evan.ashley.plasma.dao.UserDao;
 import evan.ashley.plasma.dao.UserDaoImpl;
 import evan.ashley.plasma.util.JdbcUtil;
@@ -37,5 +39,10 @@ public class MainComponent {
     @Bean
     public UserDao getUserDao(final DataSource dataSource, final JdbcUtil jdbcUtil) {
         return new UserDaoImpl(dataSource, jdbcUtil);
+    }
+
+    @Bean
+    public FollowDao getFollowDao(final DataSource dataSource, final JdbcUtil jdbcUtil) {
+        return new FollowDaoImpl(dataSource, jdbcUtil);
     }
 }
