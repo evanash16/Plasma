@@ -8,6 +8,7 @@ import evan.ashley.plasma.dao.FollowDaoImpl;
 import evan.ashley.plasma.dao.UserDao;
 import evan.ashley.plasma.dao.UserDaoImpl;
 import evan.ashley.plasma.model.dao.FollowsPaginationToken;
+import evan.ashley.plasma.model.dao.UsersPaginationToken;
 import evan.ashley.plasma.translator.TokenTranslator;
 import evan.ashley.plasma.translator.TokenTranslatorImpl;
 import evan.ashley.plasma.util.JdbcUtil;
@@ -43,14 +44,24 @@ public class MainComponent {
     }
 
     @Bean
-    public UserDao getUserDao(final DataSource dataSource, final JdbcUtil jdbcUtil) {
-        return new UserDaoImpl(dataSource, jdbcUtil);
-    }
-
-    @Bean
     public ObjectMapper getObjectMapper() {
         return new ObjectMapper()
                 .findAndRegisterModules();
+    }
+
+    @Bean
+    public TokenTranslator<UsersPaginationToken> getUsersPaginationToken(final ObjectMapper objectMapper) {
+        final TypeReference<UsersPaginationToken> typeReference = new TypeReference<UsersPaginationToken>() {
+        };
+        return new TokenTranslatorImpl<>(objectMapper, typeReference, Base64.getEncoder(), Base64.getDecoder());
+    }
+
+    @Bean
+    public UserDao getUserDao(
+            final DataSource dataSource,
+            final JdbcUtil jdbcUtil,
+            final TokenTranslator<UsersPaginationToken> tokenTranslator) {
+        return new UserDaoImpl(dataSource, jdbcUtil, tokenTranslator);
     }
 
     @Bean

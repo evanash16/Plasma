@@ -11,4 +11,6 @@ public interface UserDao {
     void updateUser(UpdateUserInput input) throws ResourceNotFoundException, ValidationException;
 
     GetUserOutput getUser(GetUserInput input) throws ResourceNotFoundException;
+
+    SearchUsersOutput searchUsers(SearchUsersInput input);
 }

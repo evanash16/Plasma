@@ -1,11 +1,16 @@
 package evan.ashley.plasma.controller;
 
+import com.google.common.collect.ImmutableList;
 import evan.ashley.plasma.dao.UserDao;
 import evan.ashley.plasma.model.api.*;
+import evan.ashley.plasma.model.api.User;
 import evan.ashley.plasma.model.dao.*;
+import io.micrometer.common.lang.Nullable;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @Log4j2
 @RestController
@@ -44,5 +49,23 @@ public class UserController {
                 .username(request.getUsername())
                 .password(request.getPassword())
                 .build());
+    }
+
+    @GetMapping("/user")
+    public SearchUsersResponse searchUsers(
+            @RequestParam("usernameSearchString") final String usernameSearchString,
+            @RequestParam("maxPageSize") @Nullable final Integer maxPageSize,
+            @RequestParam("paginationToken") @Nullable final String paginationToken) {
+        final SearchUsersOutput output = userDao.searchUsers(ImmutableSearchUsersInput.builder()
+                .usernameSearchString(usernameSearchString)
+                .maxPageSize(maxPageSize)
+                .paginationToken(paginationToken)
+                .build());
+        return ImmutableSearchUsersResponse.builder()
+                .users(output.getUsers().stream()
+                        .map(User::fromInternal)
+                        .collect(ImmutableList.toImmutableList()))
+                .paginationToken(output.getPaginationToken())
+                .build();
     }
 }

@@ -3,11 +3,24 @@ package evan.ashley.plasma.dao;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import evan.ashley.plasma.constant.db.PostgreSQL;
+import evan.ashley.plasma.constant.db.Users;
 import evan.ashley.plasma.model.api.InternalErrorException;
 import evan.ashley.plasma.model.api.ResourceNotFoundException;
 import evan.ashley.plasma.model.api.ValidationException;
-import evan.ashley.plasma.model.dao.*;
+import evan.ashley.plasma.model.dao.CreateUserInput;
+import evan.ashley.plasma.model.dao.CreateUserOutput;
+import evan.ashley.plasma.model.dao.GetUserInput;
+import evan.ashley.plasma.model.dao.GetUserOutput;
+import evan.ashley.plasma.model.dao.ImmutableCreateUserOutput;
+import evan.ashley.plasma.model.dao.ImmutableGetUserOutput;
+import evan.ashley.plasma.model.dao.ImmutableSearchUsersOutput;
+import evan.ashley.plasma.model.dao.ImmutableUsersPaginationToken;
+import evan.ashley.plasma.model.dao.SearchUsersInput;
+import evan.ashley.plasma.model.dao.SearchUsersOutput;
+import evan.ashley.plasma.model.dao.UpdateUserInput;
+import evan.ashley.plasma.model.dao.UsersPaginationToken;
 import evan.ashley.plasma.model.db.User;
+import evan.ashley.plasma.translator.TokenTranslator;
 import evan.ashley.plasma.util.ImmutableParameterizedSqlStatement;
 import evan.ashley.plasma.util.JdbcUtil;
 import evan.ashley.plasma.util.ParameterizedSqlStatement;
@@ -18,8 +31,11 @@ import lombok.extern.log4j.Log4j2;
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static evan.ashley.plasma.constant.db.Users.Column.PASSWORD;
@@ -29,8 +45,12 @@ import static evan.ashley.plasma.constant.db.Users.Column.USERNAME;
 @AllArgsConstructor
 public class UserDaoImpl implements UserDao {
 
+    private static final int DEFAULT_SEARCH_LIMIT = 100;
+    private static final int MAX_TOTAL_ITEMS_COUNT = 1000;
+
     private final DataSource dataSource;
     private final JdbcUtil jdbcUtil;
+    private final TokenTranslator<UsersPaginationToken> tokenTranslator;
 
     @Override
     public CreateUserOutput createUser(final CreateUserInput input) throws ValidationException {
@@ -126,6 +146,56 @@ public class UserDaoImpl implements UserDao {
             throw new InternalErrorException(String.format("Failed to retrieve user with id '%s'", input.getId()), e);
         } catch (final NoSuchElementException e) {
             throw new ResourceNotFoundException(String.format("No user found with id '%s'", input.getId()));
+        }
+    }
+
+    public SearchUsersOutput searchUsers(final SearchUsersInput input) {
+        try (Connection connection = dataSource.getConnection()) {
+            final UsersPaginationToken paginationToken = tokenTranslator.decode(input.getPaginationToken());
+            final Instant pointInTime = Optional.ofNullable(paginationToken)
+                    .map(UsersPaginationToken::getPointInTime)
+                    .orElseGet(Instant::now);
+            final int previousItemsCount = Optional.ofNullable(paginationToken)
+                    .map(UsersPaginationToken::getPreviousItemCount)
+                    .orElse(0);
+
+            final int maxPageSize = Optional.ofNullable(input.getMaxPageSize())
+                    .orElse(DEFAULT_SEARCH_LIMIT);
+
+            final List<User> users = jdbcUtil.run(
+                    connection,
+                    ParameterizedSqlStatementUtil.build(
+                            "dao/user/SearchUsers.sql",
+                            Timestamp.from(pointInTime),
+                            input.getUsernameSearchString(),
+                            input.getUsernameSearchString(),
+                            maxPageSize,
+                            previousItemsCount),
+                    User::fromResultSet);
+            final int newPreviousItemsCount = previousItemsCount + users.size();
+
+            final ImmutableSearchUsersOutput.Builder outputBuilder = ImmutableSearchUsersOutput.builder()
+                    .users(users.stream()
+                            .map(evan.ashley.plasma.model.dao.User::fromInternal)
+                            .collect(ImmutableList.toImmutableList()));
+
+            // Offset queries are expensive, and since the query space can be reduced with more precise query criteria,
+            // we simply cut users off when they've retrieved a max number of results rather than enable them to
+            // continue and consume compute.
+            if (users.isEmpty() || newPreviousItemsCount > MAX_TOTAL_ITEMS_COUNT) {
+                return outputBuilder.build();
+            }
+
+            final UsersPaginationToken newPaginationToken = ImmutableUsersPaginationToken.builder()
+                    .previousItemCount(newPreviousItemsCount)
+                    .pointInTime(pointInTime)
+                    .build();
+            return outputBuilder
+                    .paginationToken(tokenTranslator.encode(newPaginationToken))
+                    .build();
+        } catch (final SQLException e) {
+            log.error("Something went wrong searching for users.", e);
+            throw new InternalErrorException("Something went wrong searching for users", e);
         }
     }
 }
