@@ -6,10 +6,13 @@ import evan.ashley.plasma.model.dao.post.CreatePostInput;
 import evan.ashley.plasma.model.dao.post.CreatePostOutput;
 import evan.ashley.plasma.model.dao.post.GetPostInput;
 import evan.ashley.plasma.model.dao.post.GetPostOutput;
+import evan.ashley.plasma.model.dao.post.UpdatePostInput;
 
 public interface PostDao {
 
     CreatePostOutput createPost(CreatePostInput input) throws ValidationException;
+
+    void updatePost(UpdatePostInput input) throws ResourceNotFoundException;
 
     GetPostOutput getPost(GetPostInput input) throws ResourceNotFoundException;
 }

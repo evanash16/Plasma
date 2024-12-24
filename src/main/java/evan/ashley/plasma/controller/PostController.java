@@ -8,16 +8,20 @@ import evan.ashley.plasma.model.api.ResourceNotFoundException;
 import evan.ashley.plasma.model.api.ValidationException;
 import evan.ashley.plasma.model.api.post.ImmutableCreatePostResponse;
 import evan.ashley.plasma.model.api.post.ImmutableGetPostResponse;
+import evan.ashley.plasma.model.api.post.UpdatePostRequest;
 import evan.ashley.plasma.model.dao.post.CreatePostOutput;
 import evan.ashley.plasma.model.dao.post.GetPostOutput;
 import evan.ashley.plasma.model.dao.post.ImmutableCreatePostInput;
 import evan.ashley.plasma.model.dao.post.ImmutableGetPostInput;
+import evan.ashley.plasma.model.dao.post.ImmutableUpdatePostInput;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @Log4j2
@@ -37,6 +41,17 @@ public class PostController {
         return ImmutableCreatePostResponse.builder()
                 .id(output.getId())
                 .build();
+    }
+
+    @PatchMapping("/post/{id}")
+    public void updatePost(
+            @PathVariable("id") final String id,
+            @RequestBody final UpdatePostRequest request) throws ResourceNotFoundException {
+        postDao.updatePost(ImmutableUpdatePostInput.builder()
+                .id(id)
+                .title(request.getTitle())
+                .body(request.getBody())
+                .build());
     }
 
     @GetMapping("/post/{id}")
