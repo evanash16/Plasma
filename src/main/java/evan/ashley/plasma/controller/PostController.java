@@ -9,13 +9,16 @@ import evan.ashley.plasma.model.api.ValidationException;
 import evan.ashley.plasma.model.api.post.ImmutableCreatePostResponse;
 import evan.ashley.plasma.model.api.post.ImmutableGetPostResponse;
 import evan.ashley.plasma.model.api.post.UpdatePostRequest;
+import evan.ashley.plasma.model.dao.follow.ImmutableDeleteFollowInput;
 import evan.ashley.plasma.model.dao.post.CreatePostOutput;
 import evan.ashley.plasma.model.dao.post.GetPostOutput;
 import evan.ashley.plasma.model.dao.post.ImmutableCreatePostInput;
+import evan.ashley.plasma.model.dao.post.ImmutableDeletePostInput;
 import evan.ashley.plasma.model.dao.post.ImmutableGetPostInput;
 import evan.ashley.plasma.model.dao.post.ImmutableUpdatePostInput;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -51,6 +54,13 @@ public class PostController {
                 .id(id)
                 .title(request.getTitle())
                 .body(request.getBody())
+                .build());
+    }
+
+    @DeleteMapping("/post/{id}")
+    public void deletePost(@PathVariable("id") final String id) throws ResourceNotFoundException {
+        postDao.deletePost(ImmutableDeletePostInput.builder()
+                .id(id)
                 .build());
     }
 

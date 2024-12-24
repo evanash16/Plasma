@@ -9,6 +9,7 @@ import evan.ashley.plasma.model.api.ValidationException;
 import evan.ashley.plasma.model.OptionalString;
 import evan.ashley.plasma.model.dao.post.CreatePostInput;
 import evan.ashley.plasma.model.dao.post.CreatePostOutput;
+import evan.ashley.plasma.model.dao.post.DeletePostInput;
 import evan.ashley.plasma.model.dao.post.GetPostInput;
 import evan.ashley.plasma.model.dao.post.GetPostOutput;
 import evan.ashley.plasma.model.dao.post.ImmutableCreatePostOutput;
@@ -122,6 +123,25 @@ public class PostDaoImpl implements PostDao {
     }
 
     @Override
+    public void deletePost(final DeletePostInput input) throws ResourceNotFoundException {
+        try (Connection connection = dataSource.getConnection()) {
+            final Post ignored = jdbcUtil.run(connection, ParameterizedSqlStatementUtil.build(
+                            "dao/post/DeletePost.sql",
+                            input.getId()),
+                    Post::fromResultSet).getFirst();
+        } catch (final NoSuchElementException e) {
+            throw new ResourceNotFoundException(String.format("No post found with id '%s'", input.getId()));
+        } catch (final SQLException e) {
+            log.error(
+                    "Something went wrong deleting post '{}'",
+                    input.getId(), e);
+            throw new InternalErrorException(String.format(
+                    "Failed to delete post '%s'",
+                    input.getId()), e);
+        }
+    }
+
+    @Override
     public GetPostOutput getPost(final GetPostInput input) throws ResourceNotFoundException {
         try (Connection connection = dataSource.getConnection()) {
             final Post post = jdbcUtil.run(
@@ -139,9 +159,9 @@ public class PostDaoImpl implements PostDao {
                     .body(post.getBody())
                     .build();
         } catch (final SQLException e) {
-            throw new InternalErrorException(String.format("Failed to retrieve user with id '%s'", input.getId()), e);
+            throw new InternalErrorException(String.format("Failed to retrieve post with id '%s'", input.getId()), e);
         } catch (final NoSuchElementException e) {
-            throw new ResourceNotFoundException(String.format("No user found with id '%s'", input.getId()));
+            throw new ResourceNotFoundException(String.format("No post found with id '%s'", input.getId()));
         }
     }
 }

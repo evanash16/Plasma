@@ -1,7 +1,6 @@
 package evan.ashley.plasma.model.api.post;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import evan.ashley.plasma.model.api.ImmutableCreatePostRequest;
 import org.immutables.value.Value;
 
 import javax.annotation.Nullable;
