@@ -7,10 +7,14 @@ import evan.ashley.plasma.dao.FollowDao;
 import evan.ashley.plasma.dao.FollowDaoImpl;
 import evan.ashley.plasma.dao.PostDao;
 import evan.ashley.plasma.dao.PostDaoImpl;
+import evan.ashley.plasma.dao.SessionDao;
+import evan.ashley.plasma.dao.SessionDaoImpl;
 import evan.ashley.plasma.dao.UserDao;
 import evan.ashley.plasma.dao.UserDaoImpl;
 import evan.ashley.plasma.model.dao.follow.FollowsPaginationToken;
 import evan.ashley.plasma.model.dao.post.PostsPaginationToken;
+import evan.ashley.plasma.model.dao.session.CreateSessionInput;
+import evan.ashley.plasma.model.dao.session.CreateSessionOutput;
 import evan.ashley.plasma.model.dao.user.UsersPaginationToken;
 import evan.ashley.plasma.translator.TokenTranslator;
 import evan.ashley.plasma.translator.TokenTranslatorImpl;
@@ -95,5 +99,12 @@ public class MainComponent {
             final JdbcUtil jdbcUtil,
             final TokenTranslator<PostsPaginationToken> tokenTranslator) {
         return new PostDaoImpl(dataSource, jdbcUtil, tokenTranslator);
+    }
+
+    @Bean
+    public SessionDao getSessionDao(
+            final DataSource dataSource,
+            final JdbcUtil jdbcUtil) {
+        return new SessionDaoImpl(dataSource, jdbcUtil);
     }
 }

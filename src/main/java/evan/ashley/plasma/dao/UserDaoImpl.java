@@ -131,21 +131,38 @@ public class UserDaoImpl implements UserDao {
     @Override
     public GetUserOutput getUser(final GetUserInput input) throws ResourceNotFoundException {
         try (Connection connection = dataSource.getConnection()) {
+            final ParameterizedSqlStatement statement;
+            if (input.getId() != null) {
+                statement = ParameterizedSqlStatementUtil.build(
+                        "dao/user/GetUserById.sql",
+                        input.getId());
+            } else if (input.getUsername() != null) {
+                statement = ParameterizedSqlStatementUtil.build(
+                        "dao/user/GetUserByUsername.sql",
+                        input.getUsername());
+            } else {
+                throw new IllegalArgumentException("Cannot fetch a user without specifying an id or username.");
+            }
+
             final User user = jdbcUtil.run(
                     connection,
-                    ParameterizedSqlStatementUtil.build(
-                            "dao/user/GetUser.sql",
-                            input.getId()),
+                    statement,
                     User::fromResultSet).getFirst();
             return ImmutableGetUserOutput.builder()
                     .id(user.getId())
                     .username(user.getUsername())
+                    .password(user.getPassword())
                     .creationTime(user.getCreationTime())
                     .build();
         } catch (final SQLException e) {
             throw new InternalErrorException(String.format("Failed to retrieve user with id '%s'", input.getId()), e);
         } catch (final NoSuchElementException e) {
-            throw new ResourceNotFoundException(String.format("No user found with id '%s'", input.getId()));
+            if (input.getId() != null) {
+                throw new ResourceNotFoundException(String.format("No user found with id '%s'", input.getId()));
+            } else if (input.getUsername() != null) {
+                throw new ResourceNotFoundException(String.format("No user found with username '%s'", input.getUsername()));
+            }
+            throw new ResourceNotFoundException("No user found meeting the request criteria.");
         }
     }
 

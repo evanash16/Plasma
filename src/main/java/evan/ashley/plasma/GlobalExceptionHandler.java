@@ -1,6 +1,7 @@
 package evan.ashley.plasma;
 
 import evan.ashley.plasma.model.api.ResourceNotFoundException;
+import evan.ashley.plasma.model.api.UnauthorizedException;
 import evan.ashley.plasma.model.api.ValidationException;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.http.HttpStatus;
@@ -20,6 +21,8 @@ public class GlobalExceptionHandler {
             httpStatus = HttpStatus.NOT_FOUND;
         } else if (e instanceof ValidationException) {
             httpStatus = HttpStatus.UNPROCESSABLE_ENTITY;
+        } else if (e instanceof UnauthorizedException) {
+            httpStatus = HttpStatus.UNAUTHORIZED;
         } else {
             log.error("A controller threw an irrecoverable exception.", e);
             httpStatus = HttpStatus.INTERNAL_SERVER_ERROR;

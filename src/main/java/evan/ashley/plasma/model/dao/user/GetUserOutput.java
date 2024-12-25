@@ -11,5 +11,7 @@ public interface GetUserOutput {
 
     String getUsername();
 
+    String getPassword();
+
     Instant getCreationTime();
 }
