@@ -26,6 +26,7 @@ import evan.ashley.plasma.util.ParameterizedSqlStatement;
 import evan.ashley.plasma.util.ParameterizedSqlStatementUtil;
 import lombok.AllArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.mindrot.jbcrypt.BCrypt;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -59,7 +60,7 @@ public class UserDaoImpl implements UserDao {
                     ParameterizedSqlStatementUtil.build(
                             "dao/user/CreateUser.sql",
                             input.getUsername(),
-                            input.getPassword()),
+                            BCrypt.hashpw(input.getPassword(), BCrypt.gensalt())),
                     User::fromResultSet).getFirst();
             return ImmutableCreateUserOutput.builder()
                     .id(user.getId())
@@ -121,7 +122,7 @@ public class UserDaoImpl implements UserDao {
         if (input.getPassword() != null) {
             updateExpressionsBuilder.add(ImmutableParameterizedSqlStatement.builder()
                     .sql(String.format("%s = ?", PASSWORD))
-                    .addParameters(input.getPassword())
+                    .addParameters(BCrypt.hashpw(input.getPassword(), BCrypt.gensalt()))
                     .build());
         }
         return updateExpressionsBuilder.build();
