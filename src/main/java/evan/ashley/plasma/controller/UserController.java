@@ -1,6 +1,8 @@
 package evan.ashley.plasma.controller;
 
 import com.google.common.collect.ImmutableList;
+import evan.ashley.plasma.constant.Header;
+import evan.ashley.plasma.dao.SessionDao;
 import evan.ashley.plasma.dao.UserDao;
 import evan.ashley.plasma.model.api.*;
 import evan.ashley.plasma.model.api.user.CreateUserRequest;
@@ -12,6 +14,8 @@ import evan.ashley.plasma.model.api.user.ImmutableSearchUsersResponse;
 import evan.ashley.plasma.model.api.user.SearchUsersResponse;
 import evan.ashley.plasma.model.api.user.UpdateUserRequest;
 import evan.ashley.plasma.model.api.user.User;
+import evan.ashley.plasma.model.dao.session.GetSessionOutput;
+import evan.ashley.plasma.model.dao.session.ImmutableGetSessionInput;
 import evan.ashley.plasma.model.dao.user.CreateUserOutput;
 import evan.ashley.plasma.model.dao.user.GetUserOutput;
 import evan.ashley.plasma.model.dao.user.ImmutableCreateUserInput;
@@ -28,6 +32,8 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 public class UserController {
 
+    @Autowired
+    private SessionDao sessionDao;
     @Autowired
     private UserDao userDao;
 
@@ -54,10 +60,15 @@ public class UserController {
                 .build();
     }
 
-    @PatchMapping("/user/{id}")
-    public void updateUser(@PathVariable("id") final String id, @RequestBody final UpdateUserRequest request) throws ResourceNotFoundException, ValidationException {
+    @PatchMapping("/user")
+    public void updateUser(
+            @RequestHeader(Header.SESSION) final String sessionId,
+            @RequestBody final UpdateUserRequest request) throws ResourceNotFoundException, ValidationException {
+        final GetSessionOutput getSessionOutput = sessionDao.getSession(ImmutableGetSessionInput.builder()
+                .id(sessionId)
+                .build());
         userDao.updateUser(ImmutableUpdateUserInput.builder()
-                .id(id)
+                .id(getSessionOutput.getUserId())
                 .username(request.getUsername())
                 .password(request.getPassword())
                 .build());

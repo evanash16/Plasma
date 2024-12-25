@@ -6,4 +6,6 @@ import org.immutables.value.Value;
 public interface DeletePostInput {
 
     String getId();
+
+    String getPostedById();
 }

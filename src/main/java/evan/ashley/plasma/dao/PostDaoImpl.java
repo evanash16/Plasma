@@ -97,6 +97,7 @@ public class PostDaoImpl implements PostDao {
                             .flatMap(List::stream)
                             .collect(ImmutableList.toImmutableList()))
                     .add(input.getId())
+                    .add(input.getPostedById())
                     .build();
 
             jdbcUtil.run(
@@ -139,7 +140,8 @@ public class PostDaoImpl implements PostDao {
         try (Connection connection = dataSource.getConnection()) {
             final evan.ashley.plasma.model.db.Post ignored = jdbcUtil.run(connection, ParameterizedSqlStatementUtil.build(
                             "dao/post/DeletePost.sql",
-                            input.getId()),
+                            input.getId(),
+                            input.getPostedById()),
                     evan.ashley.plasma.model.db.Post::fromResultSet).getFirst();
         } catch (final NoSuchElementException e) {
             throw new ResourceNotFoundException(String.format("No post found with id '%s'", input.getId()));

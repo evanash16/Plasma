@@ -9,8 +9,6 @@ import javax.annotation.Nullable;
 @JsonDeserialize(as = ImmutableCreatePostRequest.class)
 public interface CreatePostRequest {
 
-    String getPostedById();
-
     String getTitle();
 
     @Nullable

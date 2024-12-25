@@ -10,6 +10,8 @@ public interface UpdatePostInput {
 
     String getId();
 
+    String getPostedById();
+
     @Nullable
     String getTitle();
 

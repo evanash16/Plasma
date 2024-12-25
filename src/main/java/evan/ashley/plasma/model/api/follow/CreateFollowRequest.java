@@ -7,7 +7,5 @@ import org.immutables.value.Value;
 @JsonDeserialize(as = ImmutableCreateFollowRequest.class)
 public interface CreateFollowRequest {
 
-    String getFollowerId();
-
     String getFolloweeId();
 }

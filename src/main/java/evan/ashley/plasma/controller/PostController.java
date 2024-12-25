@@ -1,7 +1,9 @@
 package evan.ashley.plasma.controller;
 
 import com.google.common.collect.ImmutableList;
+import evan.ashley.plasma.constant.Header;
 import evan.ashley.plasma.dao.PostDao;
+import evan.ashley.plasma.dao.SessionDao;
 import evan.ashley.plasma.model.api.post.CreatePostRequest;
 import evan.ashley.plasma.model.api.post.CreatePostResponse;
 import evan.ashley.plasma.model.api.post.GetPostResponse;
@@ -23,6 +25,8 @@ import evan.ashley.plasma.model.dao.post.ImmutableGetPostInput;
 import evan.ashley.plasma.model.dao.post.ImmutableListPostsInput;
 import evan.ashley.plasma.model.dao.post.ImmutableUpdatePostInput;
 import evan.ashley.plasma.model.dao.post.ListPostsOutput;
+import evan.ashley.plasma.model.dao.session.GetSessionOutput;
+import evan.ashley.plasma.model.dao.session.ImmutableGetSessionInput;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -31,6 +35,7 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -42,12 +47,19 @@ import java.util.Optional;
 public class PostController {
 
     @Autowired
+    private SessionDao sessionDao;
+    @Autowired
     private PostDao postDao;
 
     @PostMapping("/post")
-    public CreatePostResponse createPost(@RequestBody final CreatePostRequest request) throws ValidationException {
+    public CreatePostResponse createPost(
+            @RequestHeader(Header.SESSION) final String sessionId,
+            @RequestBody final CreatePostRequest request) throws ValidationException, ResourceNotFoundException {
+        final GetSessionOutput getSessionOutput = sessionDao.getSession(ImmutableGetSessionInput.builder()
+                .id(sessionId)
+                .build());
         final CreatePostOutput output = postDao.createPost(ImmutableCreatePostInput.builder()
-                .postedById(request.getPostedById())
+                .postedById(getSessionOutput.getUserId())
                 .title(request.getTitle())
                 .body(request.getBody())
                 .build());
@@ -58,19 +70,30 @@ public class PostController {
 
     @PatchMapping("/post/{id}")
     public void updatePost(
+            @RequestHeader(Header.SESSION) final String sessionId,
             @PathVariable("id") final String id,
             @RequestBody final UpdatePostRequest request) throws ResourceNotFoundException {
+        final GetSessionOutput getSessionOutput = sessionDao.getSession(ImmutableGetSessionInput.builder()
+                .id(sessionId)
+                .build());
         postDao.updatePost(ImmutableUpdatePostInput.builder()
                 .id(id)
+                .postedById(getSessionOutput.getUserId())
                 .title(request.getTitle())
                 .body(request.getBody())
                 .build());
     }
 
     @DeleteMapping("/post/{id}")
-    public void deletePost(@PathVariable("id") final String id) throws ResourceNotFoundException {
+    public void deletePost(
+            @RequestHeader(Header.SESSION) final String sessionId,
+            @PathVariable("id") final String id) throws ResourceNotFoundException {
+        final GetSessionOutput getSessionOutput = sessionDao.getSession(ImmutableGetSessionInput.builder()
+                .id(sessionId)
+                .build());
         postDao.deletePost(ImmutableDeletePostInput.builder()
                 .id(id)
+                .postedById(getSessionOutput.getUserId())
                 .build());
     }
 

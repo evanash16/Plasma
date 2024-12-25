@@ -83,9 +83,10 @@ public class FollowDaoImpl implements FollowDao {
     @Override
     public void deleteFollow(final DeleteFollowInput input) throws ResourceNotFoundException {
         try (Connection connection = dataSource.getConnection()) {
-            final Follow ignored = jdbcUtil.run(connection, ParameterizedSqlStatementUtil.build(
+            jdbcUtil.run(connection, ParameterizedSqlStatementUtil.build(
                             "dao/follow/DeleteFollow.sql",
-                            input.getId()),
+                            input.getId(),
+                            input.getFollowerId()),
                     Follow::fromResultSet).getFirst();
         } catch (final NoSuchElementException e) {
             throw new ResourceNotFoundException(String.format("No follow found with id '%s'", input.getId()));

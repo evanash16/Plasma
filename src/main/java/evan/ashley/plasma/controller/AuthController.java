@@ -4,6 +4,7 @@ import evan.ashley.plasma.dao.SessionDao;
 import evan.ashley.plasma.dao.UserDao;
 import evan.ashley.plasma.model.api.ResourceNotFoundException;
 import evan.ashley.plasma.model.api.UnauthorizedException;
+import evan.ashley.plasma.model.api.ValidationException;
 import evan.ashley.plasma.model.api.auth.AuthLoginRequest;
 import evan.ashley.plasma.model.api.auth.AuthLoginResponse;
 import evan.ashley.plasma.model.api.auth.ImmutableAuthLoginResponse;
@@ -26,7 +27,8 @@ public class AuthController {
     private SessionDao sessionDao;
 
     @PostMapping("/auth/login")
-    public AuthLoginResponse createAuthLogin(@RequestBody final AuthLoginRequest request) throws ResourceNotFoundException, UnauthorizedException {
+    public AuthLoginResponse createAuthLogin(@RequestBody final AuthLoginRequest request)
+            throws ResourceNotFoundException, UnauthorizedException, ValidationException {
         final GetUserOutput getUserOutput = userDao.getUser(ImmutableGetUserInput.builder()
                 .username(request.getUsername())
                 .build());
