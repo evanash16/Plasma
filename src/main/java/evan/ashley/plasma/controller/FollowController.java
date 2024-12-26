@@ -4,7 +4,6 @@ import com.google.common.collect.ImmutableList;
 import evan.ashley.plasma.constant.Header;
 import evan.ashley.plasma.dao.FollowDao;
 import evan.ashley.plasma.dao.SessionDao;
-import evan.ashley.plasma.model.api.follow.CreateFollowRequest;
 import evan.ashley.plasma.model.api.follow.CreateFollowResponse;
 import evan.ashley.plasma.model.api.follow.Follow;
 import evan.ashley.plasma.model.api.follow.FollowsSortOrder;
@@ -47,37 +46,37 @@ public class FollowController {
     @Autowired
     private FollowDao followDao;
 
-    @PostMapping("/follow")
-    public CreateFollowResponse createFollow(
+    @PostMapping("/follow/user/{id}")
+    public CreateFollowResponse createFollowUser(
             @RequestHeader(Header.SESSION) final String sessionId,
-            @RequestBody final CreateFollowRequest request) throws ValidationException, ResourceNotFoundException {
+            @PathVariable("id") final String userId) throws ValidationException, ResourceNotFoundException {
         final GetSessionOutput getSessionOutput = sessionDao.getSession(ImmutableGetSessionInput.builder()
                 .id(sessionId)
                 .build());
         final CreateFollowOutput output = followDao.createFollow(ImmutableCreateFollowInput.builder()
                 .followerId(getSessionOutput.getUserId())
-                .followeeId(request.getFolloweeId())
+                .followeeId(userId)
                 .build());
         return ImmutableCreateFollowResponse.builder()
                 .id(output.getId())
                 .build();
     }
 
-    @DeleteMapping("/follow/{id}")
-    public void deleteFollow(
+    @DeleteMapping("/follow/user/{id}")
+    public void deleteFollowUser(
             @RequestHeader(Header.SESSION) final String sessionId,
-            @PathVariable("id") final String id) throws ResourceNotFoundException {
+            @PathVariable("id") final String userId) throws ResourceNotFoundException {
         final GetSessionOutput getSessionOutput = sessionDao.getSession(ImmutableGetSessionInput.builder()
                 .id(sessionId)
                 .build());
         followDao.deleteFollow(ImmutableDeleteFollowInput.builder()
-                .id(id)
                 .followerId(getSessionOutput.getUserId())
+                .followeeId(userId)
                 .build());
     }
 
     @GetMapping("/follow/{id}")
-    public GetFollowResponse getFollow(@PathVariable("id") final String id) throws ResourceNotFoundException {
+    public GetFollowResponse getFollow(@PathVariable("id") final String id) throws ResourceNotFoundException, ValidationException {
         final GetFollowOutput output = followDao.getFollow(ImmutableGetFollowInput.builder()
                 .id(id)
                 .build());
@@ -89,17 +88,45 @@ public class FollowController {
                 .build();
     }
 
-    @GetMapping("/follow")
-    public ListFollowsResponse listFollows(
+    @GetMapping("/follow/user/{id}")
+    public GetFollowResponse getFollowUser(
             @RequestHeader(Header.SESSION) final String sessionId,
-            @RequestParam("sortOrder") @Nullable final FollowsSortOrder sortOrder,
-            @RequestParam("maxPageSize") @Nullable final Integer maxPageSize,
-            @RequestParam("paginationToken") @Nullable final String paginationToken) throws ResourceNotFoundException {
+            @PathVariable("id") final String userId) throws ResourceNotFoundException, ValidationException {
         final GetSessionOutput getSessionOutput = sessionDao.getSession(ImmutableGetSessionInput.builder()
                 .id(sessionId)
                 .build());
-        final ListFollowsOutput output = followDao.listFollows(ImmutableListFollowsInput.builder()
+        final GetFollowOutput output = followDao.getFollow(ImmutableGetFollowInput.builder()
                 .followerId(getSessionOutput.getUserId())
+                .followeeId(userId)
+                .build());
+        return ImmutableGetFollowResponse.builder()
+                .id(output.getId())
+                .followerId(output.getFollowerId())
+                .followeeId(output.getFolloweeId())
+                .creationTime(output.getCreationTime())
+                .build();
+    }
+
+    @GetMapping("/follow")
+    public ListFollowsResponse listFollows(
+            @RequestHeader(Header.SESSION) @Nullable final String sessionId,
+            @RequestParam("userId") @Nullable final String userId,
+            @RequestParam("sortOrder") @Nullable final FollowsSortOrder sortOrder,
+            @RequestParam("maxPageSize") @Nullable final Integer maxPageSize,
+            @RequestParam("paginationToken") @Nullable final String paginationToken) throws ValidationException, ResourceNotFoundException {
+        final String followerId;
+        if (userId != null) {
+            followerId = userId;
+        } else if (sessionId != null) {
+            final GetSessionOutput getSessionOutput = sessionDao.getSession(ImmutableGetSessionInput.builder()
+                    .id(sessionId)
+                    .build());
+            followerId = getSessionOutput.getUserId();
+        } else {
+            throw new ValidationException(String.format("One of userId or the %s header must be supplied.", Header.SESSION));
+        }
+        final ListFollowsOutput output = followDao.listFollows(ImmutableListFollowsInput.builder()
+                .followerId(followerId)
                 .sortOrder(Optional.ofNullable(sortOrder)
                         .map(FollowsSortOrder::toString)
                         .map(evan.ashley.plasma.model.dao.follow.FollowsSortOrder::valueOf)

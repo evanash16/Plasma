@@ -23,9 +23,11 @@ import evan.ashley.plasma.model.dao.follow.ListFollowsOutput;
 import evan.ashley.plasma.model.db.Follow;
 import evan.ashley.plasma.translator.TokenTranslator;
 import evan.ashley.plasma.util.JdbcUtil;
+import evan.ashley.plasma.util.ParameterizedSqlStatement;
 import evan.ashley.plasma.util.ParameterizedSqlStatementUtil;
 import lombok.AllArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.apache.el.util.Validation;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -50,9 +52,9 @@ public class FollowDaoImpl implements FollowDao {
     public CreateFollowOutput createFollow(final CreateFollowInput input) throws ValidationException {
         try (Connection connection = dataSource.getConnection()) {
             final Follow follow = jdbcUtil.run(connection, ParameterizedSqlStatementUtil.build(
-                    "dao/follow/CreateFollow.sql",
-                    input.getFollowerId(),
-                    input.getFolloweeId()),
+                            "dao/follow/CreateFollow.sql",
+                            input.getFollowerId(),
+                            input.getFolloweeId()),
                     Follow::fromResultSet).getFirst();
             return ImmutableCreateFollowOutput.builder()
                     .id(follow.getId())
@@ -85,29 +87,47 @@ public class FollowDaoImpl implements FollowDao {
         try (Connection connection = dataSource.getConnection()) {
             jdbcUtil.run(connection, ParameterizedSqlStatementUtil.build(
                             "dao/follow/DeleteFollow.sql",
-                            input.getId(),
-                            input.getFollowerId()),
+                            input.getFollowerId(),
+                            input.getFolloweeId()),
                     Follow::fromResultSet).getFirst();
         } catch (final NoSuchElementException e) {
-            throw new ResourceNotFoundException(String.format("No follow found with id '%s'", input.getId()));
+            throw new ResourceNotFoundException(String.format(
+                    "User '%s' is not following '%s'",
+                    input.getFollowerId(),
+                    input.getFolloweeId()));
         } catch (final SQLException e) {
             log.error(
-                    "Something went wrong deleting follow '{}'",
-                    input.getId(), e);
+                    "Something went wrong deleting user {}'s follow of '{}'",
+                    input.getFollowerId(),
+                    input.getFolloweeId(), e);
             throw new InternalErrorException(String.format(
-                    "Failed to delete follow '%s'",
-                    input.getId()), e);
+                    "Failed to delete user %s's follow of '%s'",
+                    input.getFollowerId(),
+                    input.getFolloweeId()), e);
         }
     }
 
     @Override
-    public GetFollowOutput getFollow(final GetFollowInput input) throws ResourceNotFoundException {
+    public GetFollowOutput getFollow(final GetFollowInput input) throws ResourceNotFoundException, ValidationException {
         try (Connection connection = dataSource.getConnection()) {
+            final ParameterizedSqlStatement statement;
+
+            if (input.getId() != null) {
+                statement = ParameterizedSqlStatementUtil.build(
+                        "dao/follow/GetFollowById.sql",
+                        input.getId());
+            } else if (input.getFollowerId() != null && input.getFolloweeId() != null) {
+                statement = ParameterizedSqlStatementUtil.build(
+                        "dao/follow/GetFollowByUser.sql",
+                        input.getFollowerId(),
+                        input.getFolloweeId());
+            } else {
+                throw new ValidationException("Cannot fetch a follow without specifying an id or users.");
+            }
+
             final Follow follow = jdbcUtil.run(
                     connection,
-                    ParameterizedSqlStatementUtil.build(
-                            "dao/follow/GetFollow.sql",
-                            input.getId()),
+                    statement,
                     Follow::fromResultSet).getFirst();
             return ImmutableGetFollowOutput.builder()
                     .id(follow.getId())
@@ -116,9 +136,31 @@ public class FollowDaoImpl implements FollowDao {
                     .creationTime(follow.getCreationTime())
                     .build();
         } catch (final SQLException e) {
-            throw new InternalErrorException(String.format("Failed to retrieve follow with id '%s'", input.getId()), e);
+            if (input.getId() != null) {
+                log.error("Failed to retrieve follow with id '{}'", input.getId(), e);
+                throw new InternalErrorException(String.format("Failed to retrieve follow with id '%s'", input.getId()), e);
+            } else if (input.getFollowerId() != null && input.getFolloweeId() != null) {
+                log.error("Failed to retrieve user {}'s follow of '{}'",
+                        input.getFollowerId(),
+                        input.getFolloweeId(),
+                        e);
+                throw new InternalErrorException(String.format(
+                        "Failed to retrieve user %s's follow of '%s'",
+                        input.getFollowerId(),
+                        input.getFolloweeId()), e);
+            }
+            log.error("Failed to retrieve user", e);
+            throw new InternalErrorException("Failed to retrieve user", e);
         } catch (final NoSuchElementException e) {
-            throw new ResourceNotFoundException(String.format("No follow found with id '%s'", input.getId()));
+            if (input.getId() != null) {
+                throw new ResourceNotFoundException(String.format("No follow found with id '%s'", input.getId()));
+            } else if (input.getFollowerId() != null && input.getFolloweeId() != null) {
+                throw new ResourceNotFoundException(String.format(
+                        "User '%s' is not following '%s'",
+                        input.getFollowerId(),
+                        input.getFolloweeId()));
+            }
+            throw new ResourceNotFoundException("Not follow found meeting the request criteria.");
         }
     }
 
@@ -133,7 +175,8 @@ public class FollowDaoImpl implements FollowDao {
                     .orElse(FollowsSortOrder.CREATION_TIME_DESCENDING);
             final String sortOrderExpression = switch (sortOrder) {
                 case FollowsSortOrder.CREATION_TIME_ASCENDING -> String.format("%s ASC", Follows.Column.CREATION_TIME);
-                case FollowsSortOrder.CREATION_TIME_DESCENDING -> String.format("%s DESC", Follows.Column.CREATION_TIME);
+                case FollowsSortOrder.CREATION_TIME_DESCENDING ->
+                        String.format("%s DESC", Follows.Column.CREATION_TIME);
             };
 
             final Instant previousCreationTime = Optional.ofNullable(paginationToken)
@@ -180,6 +223,7 @@ public class FollowDaoImpl implements FollowDao {
                     .paginationToken(tokenTranslator.encode(newPaginationToken))
                     .build();
         } catch (final SQLException e) {
+            log.error("Failed to retrieve follows for follower id '{}'", input.getFollowerId(), e);
             throw new InternalErrorException(String.format(
                     "Failed to retrieve follows for follower id '%s'",
                     input.getFollowerId()), e);

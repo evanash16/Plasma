@@ -129,7 +129,7 @@ public class UserDaoImpl implements UserDao {
     }
 
     @Override
-    public GetUserOutput getUser(final GetUserInput input) throws ResourceNotFoundException {
+    public GetUserOutput getUser(final GetUserInput input) throws ResourceNotFoundException, ValidationException {
         try (Connection connection = dataSource.getConnection()) {
             final ParameterizedSqlStatement statement;
             if (input.getId() != null) {
@@ -141,7 +141,7 @@ public class UserDaoImpl implements UserDao {
                         "dao/user/GetUserByUsername.sql",
                         input.getUsername());
             } else {
-                throw new IllegalArgumentException("Cannot fetch a user without specifying an id or username.");
+                throw new ValidationException("Cannot fetch a user without specifying an id or username.");
             }
 
             final User user = jdbcUtil.run(

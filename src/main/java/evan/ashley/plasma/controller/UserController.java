@@ -49,7 +49,7 @@ public class UserController {
     }
 
     @GetMapping("/user/{id}")
-    public GetUserResponse getUser(@PathVariable("id") final String id) throws ResourceNotFoundException {
+    public GetUserResponse getUser(@PathVariable("id") final String id) throws ResourceNotFoundException, ValidationException {
         final GetUserOutput output = userDao.getUser(ImmutableGetUserInput.builder()
                 .id(id)
                 .build());
