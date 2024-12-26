@@ -211,7 +211,7 @@ public class FollowDaoImpl implements FollowDao {
 
             final ImmutableListFollowsOutput.Builder outputBuilder = ImmutableListFollowsOutput.builder()
                     .follows(externalFollows);
-            if (follows.isEmpty()) {
+            if (follows.size() < maxPageSize) {
                 return outputBuilder.build();
             }
 

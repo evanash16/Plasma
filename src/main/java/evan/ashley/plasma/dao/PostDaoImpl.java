@@ -225,7 +225,7 @@ public class PostDaoImpl implements PostDao {
 
             final ImmutableListPostsOutput.Builder outputBuilder = ImmutableListPostsOutput.builder()
                     .posts(externalPosts);
-            if (posts.isEmpty()) {
+            if (posts.size() < maxPageSize) {
                 return outputBuilder.build();
             }
 

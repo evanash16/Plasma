@@ -199,7 +199,7 @@ public class UserDaoImpl implements UserDao {
             // Offset queries are expensive, and since the query space can be reduced with more precise query criteria,
             // we simply cut users off when they've retrieved a max number of results rather than enable them to
             // continue and consume compute.
-            if (users.isEmpty() || newPreviousItemsCount > MAX_TOTAL_ITEMS_COUNT) {
+            if (users.size() < maxPageSize || newPreviousItemsCount > MAX_TOTAL_ITEMS_COUNT) {
                 return outputBuilder.build();
             }
 
