@@ -114,19 +114,29 @@ public class PostController {
 
     @GetMapping("/post")
     public ListPostsResponse listPosts(
-            @RequestParam("postedById") final String postedById,
+            @RequestHeader(Header.SESSION) @Nullable final String sessionId,
+            @RequestParam("postedById") @Nullable final String postedById,
             @RequestParam("maxPageSize") @Nullable final Integer maxPageSize,
             @RequestParam("sortOrder") @Nullable final PostsSortOrder sortOrder,
-            @RequestParam("paginationToken") @Nullable final String paginationToken) {
-        final ListPostsOutput output = postDao.listPosts(ImmutableListPostsInput.builder()
-                .postedById(postedById)
+            @RequestParam("paginationToken") @Nullable final String paginationToken) throws ResourceNotFoundException, ValidationException {
+        final ImmutableListPostsInput.Builder listPostsInputBuilder = ImmutableListPostsInput.builder()
                 .maxPageSize(maxPageSize)
                 .sortOrder(Optional.ofNullable(sortOrder)
                         .map(PostsSortOrder::toString)
                         .map(evan.ashley.plasma.model.dao.post.PostsSortOrder::valueOf)
                         .orElse(null))
-                .paginationToken(paginationToken)
-                .build());
+                .paginationToken(paginationToken);
+        if (postedById != null) {
+            listPostsInputBuilder
+                .postedById(postedById);
+        } else if (sessionId != null) {
+            final GetSessionOutput getSessionOutput = sessionDao.getSession(ImmutableGetSessionInput.builder()
+                    .id(sessionId)
+                    .build());
+            listPostsInputBuilder
+                    .followerId(getSessionOutput.getUserId());
+        }
+        final ListPostsOutput output = postDao.listPosts(listPostsInputBuilder.build());
         return ImmutableListPostsResponse.builder()
                 .posts(output.getPosts().stream()
                         .map(Post::fromInternal)

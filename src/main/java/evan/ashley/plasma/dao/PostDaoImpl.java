@@ -180,7 +180,7 @@ public class PostDaoImpl implements PostDao {
     }
 
     @Override
-    public ListPostsOutput listPosts(final ListPostsInput input) {
+    public ListPostsOutput listPosts(final ListPostsInput input) throws ValidationException {
         try (Connection connection = dataSource.getConnection()) {
             final PostsPaginationToken paginationToken = tokenTranslator.decode(input.getPaginationToken());
             final Instant pointInTime = Optional.ofNullable(paginationToken)
@@ -189,8 +189,14 @@ public class PostDaoImpl implements PostDao {
             final PostsSortOrder sortOrder = Optional.ofNullable(input.getSortOrder())
                     .orElse(PostsSortOrder.CREATION_TIME_DESCENDING);
             final String sortOrderExpression = switch (sortOrder) {
-                case PostsSortOrder.CREATION_TIME_ASCENDING -> String.format("%s ASC", Posts.Column.CREATION_TIME);
-                case PostsSortOrder.CREATION_TIME_DESCENDING -> String.format("%s DESC", Posts.Column.CREATION_TIME);
+                case PostsSortOrder.CREATION_TIME_ASCENDING -> String.format(
+                        "%s.%s ASC",
+                        Posts.Table.NAME,
+                        Posts.Column.CREATION_TIME);
+                case PostsSortOrder.CREATION_TIME_DESCENDING -> String.format(
+                        "%s.%s DESC",
+                        Posts.Table.NAME,
+                        Posts.Column.CREATION_TIME);
             };
 
             final Instant previousCreationTime = Optional.ofNullable(paginationToken)
@@ -200,24 +206,47 @@ public class PostDaoImpl implements PostDao {
                         case PostsSortOrder.CREATION_TIME_DESCENDING -> Instant.now();
                     });
             final String paginationExpression = switch (sortOrder) {
-                case PostsSortOrder.CREATION_TIME_ASCENDING -> String.format("%s > ?", Posts.Column.CREATION_TIME);
-                case PostsSortOrder.CREATION_TIME_DESCENDING -> String.format("%s < ?", Posts.Column.CREATION_TIME);
+                case PostsSortOrder.CREATION_TIME_ASCENDING -> String.format(
+                        "%s.%s > ?",
+                        Posts.Table.NAME,
+                        Posts.Column.CREATION_TIME);
+                case PostsSortOrder.CREATION_TIME_DESCENDING -> String.format(
+                        "%s.%s < ?",
+                        Posts.Table.NAME,
+                        Posts.Column.CREATION_TIME);
             };
 
             final int maxPageSize = Optional.ofNullable(input.getMaxPageSize())
                     .orElse(DEFAULT_POSTS_LIMIT);
 
+            final ParameterizedSqlStatement statement;
+            if (input.getPostedById() != null) {
+                statement = ParameterizedSqlStatementUtil.buildFromTemplate(
+                        "dao/post/ListPostsByPostedById.sql",
+                        ImmutableMap.of(
+                                "paginationExpression", paginationExpression,
+                                "sortOrder", sortOrderExpression),
+                        input.getPostedById(),
+                        Timestamp.from(pointInTime),
+                        Timestamp.from(previousCreationTime),
+                        maxPageSize);
+            } else if (input.getFollowerId() != null) {
+                statement = ParameterizedSqlStatementUtil.buildFromTemplate(
+                        "dao/post/ListPostsByFollowerId.sql",
+                        ImmutableMap.of(
+                                "paginationExpression", paginationExpression,
+                                "sortOrder", sortOrderExpression),
+                        input.getFollowerId(),
+                        Timestamp.from(pointInTime),
+                        Timestamp.from(previousCreationTime),
+                        maxPageSize);
+            } else {
+                throw new ValidationException("Cannot fetch posts without specifying a user id.");
+            }
+
             final List<evan.ashley.plasma.model.db.Post> posts = jdbcUtil.run(
                     connection,
-                    ParameterizedSqlStatementUtil.buildFromTemplate(
-                            "dao/post/ListPosts.sql",
-                            ImmutableMap.of(
-                                    "paginationExpression", paginationExpression,
-                                    "sortOrder", sortOrderExpression),
-                            input.getPostedById(),
-                            Timestamp.from(pointInTime),
-                            Timestamp.from(previousCreationTime),
-                            maxPageSize),
+                    statement,
                     evan.ashley.plasma.model.db.Post::fromResultSet);
             final List<Post> externalPosts = posts.stream()
                     .map(Post::fromInternal)

@@ -21,5 +21,5 @@ public interface PostDao {
 
     GetPostOutput getPost(GetPostInput input) throws ResourceNotFoundException;
 
-    ListPostsOutput listPosts(ListPostsInput input);
+    ListPostsOutput listPosts(ListPostsInput input) throws ValidationException;
 }

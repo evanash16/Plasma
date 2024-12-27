@@ -7,6 +7,10 @@ import javax.annotation.Nullable;
 @Value.Immutable
 public interface ListPostsInput {
 
+    @Nullable
+    String getFollowerId();
+
+    @Nullable
     String getPostedById();
 
     @Nullable
